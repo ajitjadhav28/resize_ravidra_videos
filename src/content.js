@@ -1,9 +1,16 @@
+import Player from '@vimeo/player'
+import PouchDB from 'pouchdb-browser'
+
+PouchDB.plugin(require('pouchdb-find'));
+
+let ldb = new PouchDB('watched_lectures')
+
 let lastUpdatedQuery = "#region-main .modified"
 let lastUpdatedElement = document.querySelector(lastUpdatedQuery)
 let activeNodeClass = "active_tree_node"
 let listClass = "type_activity depth_5"
 let iframeQuery = "#region-main .no-overflow iframe"
-
+let playButtonQuery = "#player > div > div > div.vp-controls-wrapper > div.vp-controls > button.play"
 let controlsNode = document.createElement('span')
 controlsNode.style.float = 'right'
 
@@ -11,9 +18,24 @@ if(lastUpdatedElement)
     lastUpdatedElement.appendChild(controlsNode)
 
 window.onload = (event) => {
-    if(document.querySelector(iframeQuery)) {
-        resizeIframe()
+    const iframe = document.querySelector(iframeQuery)
+    if(iframe) {
+        //resizeIframe()
         putControls()
+        const player = new Player(iframe)
+        player.on('ended', (event) => {
+            let url = window.location.href
+            let duration = event.duration
+            let title = document.querySelector("#region-main > div > h2").innerText
+            let lec_url = iframe.src
+
+            addLecToLdb(lec_url, title, duration, url)
+
+            setTimeout(() => {
+                window.location.href = document.getElementById("rrv-next-lecture").href
+            }, 5000)
+        })
+    
         window.onresize = (event) => {
             resizeIframe()        
         }
@@ -40,6 +62,7 @@ function putControls() {
         if(nextHref) {
             let nextElm = document.createElement('a')
             nextElm.setAttribute('href', nextHref)
+            nextElm.setAttribute('id', 'rrv-next-lecture')
             nextElm.innerHTML = "&nbspNext&nbsp"
             controlsNode.appendChild(nextElm)
         }
@@ -52,6 +75,22 @@ function resizeIframe() {
     } else {
         document.querySelector(iframeQuery).width = "100%"
     }
-    currentIframeWidth = parseInt(document.querySelector(iframeQuery).clientWidth) 
+    let currentIframeWidth = parseInt(document.querySelector(iframeQuery).clientWidth) 
     document.querySelector(iframeQuery).height = currentIframeWidth * 0.562
+}
+
+function addLecToLdb(lec_url, lec_title, duration, url) {
+    let data = {
+        '_id'       : lec_url,
+        'date'      : new Date().toISOString(),
+        'title'     : lec_title,
+        'url'       : url,
+        'duration'  : duration
+    }
+
+    ldb.put(data, (err, result) => {
+        if(err) {
+            console.error(err)
+        }
+    })
 }
