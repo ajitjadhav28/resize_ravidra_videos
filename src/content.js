@@ -20,7 +20,7 @@ if(lastUpdatedElement)
 window.onload = (event) => {
     const iframe = document.querySelector(iframeQuery)
     if(iframe) {
-        //resizeIframe()
+        resizeIframe()
         putControls()
         const player = new Player(iframe)
         player.on('ended', (event) => {
