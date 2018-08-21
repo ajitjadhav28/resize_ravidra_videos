@@ -1,5 +1,6 @@
 import Player from '@vimeo/player'
 import PouchDB from 'pouchdb-browser'
+import Download from './download'
 
 PouchDB.plugin(require('pouchdb-find'));
 
@@ -23,6 +24,16 @@ window.onload = (event) => {
         resizeIframe()
         putControls()
         const player = new Player(iframe)
+        chrome.storage.local.get(['autoplay', 'autoresize'], (res) => {
+            // console.log('Getting state')
+            // console.log(res)
+        })
+
+        player.ready().then(() => {
+            document.querySelector("#region-main > div > h2").scrollIntoView()
+            player.play().catch(err => console.log(err))
+        });
+        
         player.on('ended', (event) => {
             let url = window.location.href
             let duration = event.duration
@@ -92,5 +103,23 @@ function addLecToLdb(lec_url, lec_title, duration, url) {
         if(err) {
             console.error(err)
         }
+    })
+}
+
+function getData() {
+    ldb.allDocs({
+        include_docs: true
+    }).then(res => {
+        let keys = Object.keys(res.rows[0].doc).filter((key) => key != "_rev")
+        let doc = keys.join(',')
+        doc += '\n'
+        res.rows.forEach(row => {
+            keys.forEach(key => doc += row.doc[key] + ",")
+            doc += '\n'
+        })
+        doc += '\n'
+        Download('data.csv', doc)
+    }).catch(err => {
+        console.error(err)
     })
 }

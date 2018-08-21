@@ -3,7 +3,15 @@
     "name": "Resize Ravindra Video",
     "version": "0.2.0",
     "description": "Resize video iframes on 'eclassesbyravindra.com' to available width of browser instead of fixed size.",
+    "permissions": ["declarativeContent", "storage"],
     "author": "Ajit Jadhav",
+    "background": {
+        "scripts": ["background.js"],
+        "persistent": false
+    },
+    "page_action": {
+        "default_popup": "popup.html"
+    },
     "content_scripts": [
         {
             "matches": [

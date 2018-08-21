@@ -3,7 +3,8 @@
   "version": "2.0.0-alpha",
   "description": "Resize video iframes on 'eclassesbyravindra.com' to available width of browser instead of fixed size.",
   "scripts": {
-    "build": "webpack"
+    "build": "webpack --env.prod",
+    "watch": "webpack --watch --env.prod=0"
   },
   "dependencies": {
     "@vimeo/player": "^2.6.3",
@@ -12,6 +13,7 @@
   },
   "devDependencies": {
     "copy-webpack-plugin": "^4.5.2",
+    "html-webpack-plugin": "^3.2.0",
     "uglifyjs-webpack-plugin": "^1.3.0",
     "webpack": "^4.16.5",
     "webpack-cli": "^3.1.0",
