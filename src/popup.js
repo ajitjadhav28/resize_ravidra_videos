@@ -1,5 +1,5 @@
-//import Download from './download'
-import PouchDB from 'pouchdb-browser'
+// import Download from './download'
+// import PouchDB from 'pouchdb-browser'
 
 let autoplayChbx = document.getElementById('rrv-autoplay')
 let autoresizeChbx = document.getElementById('rrv-autoresize')
