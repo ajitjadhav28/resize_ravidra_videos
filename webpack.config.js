@@ -58,6 +58,40 @@ module.exports = env => {
                 template: './src/popup.html'
             })
         ]
+    },
+    {
+        name: 'options[react]',
+        entry: './src/options/options.js',
+        mode: env.prod ? "production" : "development",
+        module: {
+                rules: [
+                {
+                    test: /\.(js|jsx)$/,
+                    exclude: /node_modules/,
+                    use: ['babel-loader']
+                },
+                {
+                    test: /\.css$/,
+                    use: [
+                        { loader: "style-loader" },
+                        { loader: "css-loader" }
+                    ]
+                }
+                ]
+            },
+            resolve: {
+                extensions: ['*', '.js', '.jsx']
+        },
+        output: {
+            filename: 'options.js',
+            path: path.resolve(__dirname, 'dist')
+        },
+        plugins: [
+            new HtmlWebpackPlugin({
+                filename: 'options.html',
+                template: './src/options/options.html'
+            })
+        ]
 
     }
 ]};
