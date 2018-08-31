@@ -1,7 +1,7 @@
 {
     "manifest_version" : 2,
     "name": "Resize Ravindra Video",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Resize video iframes on 'eclassesbyravindra.com' to available width of browser instead of fixed size.",
     "author": "Ajit Jadhav",
     "permissions": ["declarativeContent", "storage", "activeTab"],

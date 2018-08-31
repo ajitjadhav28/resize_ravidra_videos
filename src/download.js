@@ -1,4 +1,3 @@
-// @ts-check
 
 function download(filename, text) {
     var element = document.createElement('a');

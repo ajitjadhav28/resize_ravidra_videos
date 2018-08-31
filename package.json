@@ -1,7 +1,7 @@
 {
   "name": "ravidra-extension-chrome",
-  "version": "2.0.0-alpha",
-  "description": "Resize video iframes on 'eclassesbyravindra.com' to available width of browser instead of fixed size.",
+  "version": "3.0.0-alpha",
+  "description": "Resize video iframes on 'eclassesbyravindra.com' to available width of browser instead of fixed size. Track daily progrss against defined goal. Stores activity in database for analysis.",
   "scripts": {
     "build": "webpack --env.prod",
     "watch": "webpack --watch --env.prod=0"
