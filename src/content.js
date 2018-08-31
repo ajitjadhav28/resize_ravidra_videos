@@ -2,9 +2,13 @@ import Player from '@vimeo/player'
 import PouchDB from 'pouchdb-browser'
 import Download from './download'
 import Config from './config'
+import Thingspeak from './thingspeak'
+import MyDropbox from './dropbox'
 
 PouchDB.plugin(require('pouchdb-find'));
 
+let thingspeak = new Thingspeak()
+let myDbx = new MyDropbox()
 let ldb = new PouchDB('watched_lectures')
 let startDateMs = new Date(Config.startDate)
 let dailyHrstarget = Config.dailyHrsGoal || 4
@@ -42,7 +46,6 @@ window.onload = (event) => {
         putControls()
         putTodaysProgress()
         const player = new Player(iframe)
-            
         player.ready().then(() => {
             document.querySelector("#region-main > div > h2").scrollIntoView()
             player.play().catch(err => console.log(err))
@@ -133,25 +136,31 @@ function addLecToLdb(lec_url, lec_title, duration, url) {
     })
 }
 
-function getData() {
+function getData(allData) {
+    let keys = Object.keys(allData.rows[0].doc).filter((key) => key != "_rev")
+    let doc = keys.join(',')
+    doc += '\n'
+    allData.rows.forEach(row => {
+        keys.forEach(key => {
+            if(key === 'title') {
+                doc += row.doc[key].replace(',', ' ') + ","    
+            } else {
+                doc += row.doc[key] + ","
+            }
+        })
+        doc += '\n'
+    })
+    doc += '\n'
+    return doc
+}
+
+function downloadData() {
     ldb.allDocs({
         include_docs: true
     }).then(res => {
-        let keys = Object.keys(res.rows[0].doc).filter((key) => key != "_rev")
-        let doc = keys.join(',')
-        doc += '\n'
-        res.rows.forEach(row => {
-            keys.forEach(key => {
-                if(key === 'title') {
-                    doc += row.doc[key].replace(',', ' ') + ","    
-                } else {
-                    doc += row.doc[key] + ","
-                }
-            })
-            doc += '\n'
-        })
-        doc += '\n'
+        let doc = getData(res)
         Download('data' + new Date().toISOString().substring(0,10) + '.csv', doc)
+        myDbx.upload_file('gate_db.csv', doc)
     }).catch(err => {
         console.error(err)
     })
@@ -183,6 +192,10 @@ function putTodaysProgress(){
         })
         let lagging = secondsToHms(idealProgressToday - totalCompletedDuration)
 
+        thingspeak.update_channel({
+            field1: todaysDuration / 3600
+        })
+
         let todaysDiv = document.createElement('div')
         let divStyle = "text-align: center; padding-top: 10px; font-size: 20px; "
         divStyle += todaysDuration >= 14400 ? "color: green;" : "color: brown;"
@@ -204,7 +217,7 @@ function putTodaysProgress(){
         downloadLink.innerHTML = '<img src="data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTkuMS4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgdmlld0JveD0iMCAwIDQ3MS4yIDQ3MS4yIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0NzEuMiA0NzEuMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiIHdpZHRoPSIxNnB4IiBoZWlnaHQ9IjE2cHgiPgo8Zz4KCTxnPgoJCTxwYXRoIGQ9Ik00NTcuNywyMzAuMTVjLTcuNSwwLTEzLjUsNi0xMy41LDEzLjV2MTIyLjhjMCwzMy40LTI3LjIsNjAuNS02MC41LDYwLjVIODcuNWMtMzMuNCwwLTYwLjUtMjcuMi02MC41LTYwLjV2LTEyNC44ICAgIGMwLTcuNS02LTEzLjUtMTMuNS0xMy41cy0xMy41LDYtMTMuNSwxMy41djEyNC44YzAsNDguMywzOS4zLDg3LjUsODcuNSw4Ny41aDI5Ni4yYzQ4LjMsMCw4Ny41LTM5LjMsODcuNS04Ny41di0xMjIuOCAgICBDNDcxLjIsMjM2LjI1LDQ2NS4yLDIzMC4xNSw0NTcuNywyMzAuMTV6IiBmaWxsPSIjMDA2REYwIi8+CgkJPHBhdGggZD0iTTIyNi4xLDM0Ni43NWMyLjYsMi42LDYuMSw0LDkuNSw0czYuOS0xLjMsOS41LTRsODUuOC04NS44YzUuMy01LjMsNS4zLTEzLjgsMC0xOS4xYy01LjMtNS4zLTEzLjgtNS4zLTE5LjEsMGwtNjIuNyw2Mi44ICAgIFYzMC43NWMwLTcuNS02LTEzLjUtMTMuNS0xMy41cy0xMy41LDYtMTMuNSwxMy41djI3My45bC02Mi44LTYyLjhjLTUuMy01LjMtMTMuOC01LjMtMTkuMSwwYy01LjMsNS4zLTUuMywxMy44LDAsMTkuMSAgICBMMjI2LjEsMzQ2Ljc1eiIgZmlsbD0iIzAwNkRGMCIvPgoJPC9nPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+Cjwvc3ZnPgo="/>'
         todaysDiv.appendChild(downloadLink)
         downloadLink.onclick = () => {
-            getData()
+            downloadData()
         }
         
         let timeSpan = document.createElement('span')
