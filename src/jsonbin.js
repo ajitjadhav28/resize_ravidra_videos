@@ -1,6 +1,7 @@
 import ENV from './.env.js'
 import axios from 'axios'
 import PouchDB from 'pouchdb-browser'
+import { filterJson } from './content'  
 
 export default class Jsonbin {
     constructor(binId){
@@ -18,7 +19,10 @@ export default class Jsonbin {
         ldb.bulkDocs(data)
             .then(res => {
                 console.log('Local Database Updated.', res)
-                this.putData({data: data}, binId)
+                ldb.allDocs({ include_docs: true })
+                    .then( res => {
+                        this.putData(filterJson(res), binId)
+                    })
             })
             .catch(err => console.error("Can't update local database!"))
     }
@@ -51,7 +55,8 @@ export default class Jsonbin {
         }
         this.getData(0, res => {
             if(data.data.length < res.data.length) {
-                this.updateLocalDb(res.data, binId)
+                let mergedData = [...res.data, ...data.data]
+                this.updateLocalDb(mergedData, binId)
             } else {
                 this.putData(data,binId)
             }  

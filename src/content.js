@@ -72,7 +72,7 @@ window.onload = (event) => {
             addLecToLdb(lec_url, title, duration, url)
             setTimeout(() => {
                 window.location.href = document.getElementById("rrv-next-lecture").href
-            }, 5000)
+            }, 2000)
         })
     
         window.onresize = (event) => {
@@ -183,7 +183,7 @@ function createCsv(allData) {
     return doc
 }
 
-function filterJson(allData){
+export function filterJson(allData){
     let jsondb = []
     let keys = Object.keys(allData.rows[0].doc).filter((key) => key != "_rev")
     allData.rows.forEach(row => {
