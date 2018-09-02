@@ -4,11 +4,10 @@ import Download from './download'
 import Config from './config'
 import Thingspeak from './thingspeak'
 import MyDropbox from './dropbox'
+import JsonBin from './jsonbin'
 
 PouchDB.plugin(require('pouchdb-find'));
 
-let thingspeak = new Thingspeak()
-let myDbx = new MyDropbox()
 let ldb = new PouchDB('watched_lectures')
 let startDateMs = new Date(Config.startDate)
 let dailyHrstarget = Config.dailyHrsGoal || 4
@@ -20,6 +19,7 @@ let iframeQuery = "#region-main .no-overflow iframe"
 let lec_url = ''
 let controlsNode = document.createElement('span')
 let header = document.querySelector("#page-mod-page-view > header > nav > .container-fluid")
+let thingspeakData = {}
 
 controlsNode.style.float = 'right'
 
@@ -31,12 +31,13 @@ window.onload = (event) => {
         let lastVideo = false
         if(lastVideo = JSON.parse(localStorage.getItem('rrv-last-video'))) {
             let resumeDiv = document.createElement('div')
-            resumeDiv.style = "text-aligh: center;"
+            resumeDiv.style = "text-align: center; padding-top: 10px;"
             let aLink = document.createElement('a')
-            a.innerText =  lastVideo.title
-            a.href = lastVideo.url
+            aLink.innerText =  "RESUME: " + lastVideo.title
+            aLink.href = lastVideo.url
             resumeDiv.appendChild(aLink)
-            header.appendChild(resumeDiv)
+            document.querySelector("header > nav > .container-fluid")
+                .appendChild(resumeDiv)
         }
     }
     const iframe = document.querySelector(iframeQuery)
@@ -63,7 +64,11 @@ window.onload = (event) => {
             let url = window.location.href
             let duration = event.duration
             let title = document.querySelector("#region-main > div > h2").innerText
-
+            if(Config.thingspeak) {
+                let thingspeak = new Thingspeak()
+                thingspeak.update_channel(thingspeakData)
+            }
+            
             addLecToLdb(lec_url, title, duration, url)
             setTimeout(() => {
                 window.location.href = document.getElementById("rrv-next-lecture").href
@@ -114,6 +119,28 @@ function resizeIframe() {
     document.querySelector(iframeQuery).height = currentIframeWidth * 0.562
 }
 
+function updateDataAccConf() {
+    if ( Config.dropbox || Config.jsonbin) {
+        let jsonbin = new JsonBin()
+        let myDbx = new MyDropbox()
+
+        ldb.allDocs({
+            include_docs: true
+        }).then(res => {
+            if(Config.dropbox) {
+                let csv = createCsv(res)
+                myDbx.upload_file('gate_db.csv', csv)
+            }
+            if (Config.jsonbin) {
+                let jsonData = filterJson(res)
+                jsonbin.updateBin(false, jsonData)
+            }
+        }).catch(err => {
+            console.error("Can't retrive data to update.", err)
+        })
+    }
+} 
+
 function addLecToLdb(lec_url, lec_title, duration, url) {
     let data = {
         '_id'       : lec_url,
@@ -123,20 +150,22 @@ function addLecToLdb(lec_url, lec_title, duration, url) {
         'duration'  : duration
     }
 
-    ldb.put(data, (err, result) => {
-        if(err) {
-            console.error(err)
-            alert("Cant put data: " + JSON.stringify(data) + "\n Error : " + err)
-        } else {
+    ldb.put(data)
+        .then(res => {
+            console.log('Local database updated.')
             localStorage.setItem('rrv-last-video', JSON.stringify({
-                title: title,
+                title: lec_title,
                 url: url
             }))
-        }
-    })
+            updateDataAccConf()
+        })
+        .catch(err => {
+            console.error(err)
+            alert("Cant put data: " + JSON.stringify(data) + "\n Error : " + err)
+        })
 }
 
-function getData(allData) {
+function createCsv(allData) {
     let keys = Object.keys(allData.rows[0].doc).filter((key) => key != "_rev")
     let doc = keys.join(',')
     doc += '\n'
@@ -154,13 +183,25 @@ function getData(allData) {
     return doc
 }
 
+function filterJson(allData){
+    let jsondb = []
+    let keys = Object.keys(allData.rows[0].doc).filter((key) => key != "_rev")
+    allData.rows.forEach(row => {
+        let record = {}
+        keys.forEach(key => {
+            record[key] = row.doc[key]
+        })
+        jsondb.push(record)
+    })
+    return {data: jsondb}
+}
+
 function downloadData() {
     ldb.allDocs({
         include_docs: true
     }).then(res => {
-        let doc = getData(res)
+        let doc = createCsv(res)
         Download('data' + new Date().toISOString().substring(0,10) + '.csv', doc)
-        myDbx.upload_file('gate_db.csv', doc)
     }).catch(err => {
         console.error(err)
     })
@@ -192,9 +233,10 @@ function putTodaysProgress(){
         })
         let lagging = secondsToHms(idealProgressToday - totalCompletedDuration)
 
-        thingspeak.update_channel({
-            field1: todaysDuration / 3600
-        })
+        thingspeakData = {
+            field1: todaysDuration / 3600,
+            field2: (idealProgressToday - totalCompletedDuration) / 3600
+        }
 
         let todaysDiv = document.createElement('div')
         let divStyle = "text-align: center; padding-top: 10px; font-size: 20px; "

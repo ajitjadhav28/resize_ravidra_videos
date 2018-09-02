@@ -1,5 +1,5 @@
 // This is template of .env.js
-// Add your private keys in this file and rename it to .env.js
+// Add your private keys in this file and save as .env.js
 
 const env = {
     thingspeak: {
@@ -8,6 +8,10 @@ const env = {
     },
     dropbox: {
         ACCESS_TOKEN: ''
+    },
+    jsonbin: {
+        SECRET_KEY: '',
+        DEFAULT_BIN: ''
     }
 }
 

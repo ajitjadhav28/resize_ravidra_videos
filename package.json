@@ -10,6 +10,7 @@
     "@vimeo/player": "^2.6.3",
     "axios": "^0.18.0",
     "dropbox": "^4.0.9",
+    "namor": "^1.0.1",
     "pouchdb-browser": "^7.0.0",
     "pouchdb-find": "^7.0.0",
     "react": "^16.4.1",

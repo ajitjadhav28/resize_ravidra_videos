@@ -8,7 +8,7 @@ export default class Thingspeak {
     }
 
     update_channel(data) {
-        let get_url = this.UPDATE_URL + '&field1=' + data.field1
+        let get_url = this.UPDATE_URL + '&field1=' + data.field1 + '&field2=' + data.field2
         axios.post(get_url)
             .then(response => console.log("Thingspeak updated."))
             .catch(err => console.error(err))
