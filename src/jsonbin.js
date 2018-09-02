@@ -1,5 +1,6 @@
 import ENV from './.env.js'
 import axios from 'axios'
+import PouchDB from 'pouchdb-browser'
 
 export default class Jsonbin {
     constructor(binId){
@@ -12,28 +13,40 @@ export default class Jsonbin {
         }
     }
 
-    updateBin(binId=false, data) {
+    updateLocalDb(data){
+        let ldb = new PouchDB('watched_lectures')
+        ldb.bulkDocs(data)
+            .then(res => console.log('Local Database Updated.', res))
+            .catch(err => console.error("Can't update local database!"))
+    }
+
+    updateBin(data, binId=false) {
         if(!data && !Object.keys(data)){
             console.error('No data provided to update json')
             return
         }
-        let binUrl = binId
+        this.getData(0, res => {
+            if(data.data.length < res.data.length) {
+                this.updateLocalDb(res.data)
+            }  
+            let binUrl = binId
             ? "https://api.jsonbin.io/b/" + binId
             : this.binUrl
-        axios.put(
-            binUrl,
-            {...data},
-            {
-                headers: {
-                    "Content-Type": "application/json",
-                    "secret-key": ENV.jsonbin.SECRET_KEY,
-                    "versioning": false
+            axios.put(
+                binUrl,
+                {...data},
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "secret-key": ENV.jsonbin.SECRET_KEY,
+                        "versioning": false
+                    }
                 }
-            }
-        ).then( res => {
-            console.log('Data updated on JsonBin')
-        }).catch(err => {
-            console.error("Can't update jsonbin!", err)
+            ).then( res => {
+                console.log('Data updated on JsonBin')
+            }).catch(err => {
+                console.error("Can't update jsonbin!", err)
+            })
         })
     }
 

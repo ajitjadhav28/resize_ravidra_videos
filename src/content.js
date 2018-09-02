@@ -119,7 +119,7 @@ function resizeIframe() {
     document.querySelector(iframeQuery).height = currentIframeWidth * 0.562
 }
 
-function updateDataAccConf() {
+function updateDataAccordingToConf() {
     if ( Config.dropbox || Config.jsonbin) {
         let jsonbin = new JsonBin()
         let myDbx = new MyDropbox()
@@ -133,7 +133,7 @@ function updateDataAccConf() {
             }
             if (Config.jsonbin) {
                 let jsonData = filterJson(res)
-                jsonbin.updateBin(false, jsonData)
+                jsonbin.updateBin(jsonData)
             }
         }).catch(err => {
             console.error("Can't retrive data to update.", err)
@@ -157,7 +157,7 @@ function addLecToLdb(lec_url, lec_title, duration, url) {
                 title: lec_title,
                 url: url
             }))
-            updateDataAccConf()
+            updateDataAccordingToConf()
         })
         .catch(err => {
             console.error(err)

@@ -5,9 +5,6 @@
     "description": "Resize video iframes on 'eclassesbyravindra.com' to available width of browser instead of fixed size.",
     "author": "Ajit Jadhav",
     "permissions": ["declarativeContent", "storage", "activeTab"],
-    "page_action": {
-        "default_popup": "popup.html"
-    },
     "background": {
         "scripts": ["background.js"],
         "persistent": false
