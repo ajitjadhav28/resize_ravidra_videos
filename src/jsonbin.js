@@ -13,28 +13,23 @@ export default class Jsonbin {
         }
     }
 
-    updateLocalDb(data){
+    updateLocalDb(data, binId=false){
         let ldb = new PouchDB('watched_lectures')
         ldb.bulkDocs(data)
-            .then(res => console.log('Local Database Updated.', res))
+            .then(res => {
+                console.log('Local Database Updated.', res)
+                this.putData({data: data}, binId)
+            })
             .catch(err => console.error("Can't update local database!"))
     }
 
-    updateBin(data, binId=false) {
-        if(!data && !Object.keys(data)){
-            console.error('No data provided to update json')
-            return
-        }
-        this.getData(0, res => {
-            if(data.data.length < res.data.length) {
-                this.updateLocalDb(res.data)
-            }  
-            let binUrl = binId
+    putData(data, binId=false) {
+        let binUrl = binId
             ? "https://api.jsonbin.io/b/" + binId
             : this.binUrl
             axios.put(
                 binUrl,
-                {...data},
+                {...data},  // data = {data: [...]}
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -47,6 +42,20 @@ export default class Jsonbin {
             }).catch(err => {
                 console.error("Can't update jsonbin!", err)
             })
+    }
+
+    updateBin(data, binId=false) {
+        if(!data && !Object.keys(data)){
+            console.error('No data provided to update json')
+            return
+        }
+        this.getData(0, res => {
+            if(data.data.length < res.data.length) {
+                this.updateLocalDb(res.data, binId)
+            } else {
+                this.putData(data,binId)
+            }  
+            
         })
     }
 
