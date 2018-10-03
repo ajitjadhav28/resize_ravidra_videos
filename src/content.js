@@ -9,8 +9,9 @@ import JsonBin from './jsonbin'
 PouchDB.plugin(require('pouchdb-find'));
 
 let ldb = new PouchDB('watched_lectures')
-let startDateMs = new Date(Config.startDate)
-let dailyHrstarget = Config.dailyHrsGoal || 4
+
+let startDateMs = false
+//let dailyHrstarget = Config.dailyHrsGoal || 4
 let lastUpdatedQuery = "#region-main .modified"
 let lastUpdatedElement = document.querySelector(lastUpdatedQuery)
 let activeNodeClass = "active_tree_node"
@@ -22,6 +23,17 @@ let header = document.querySelector("#page-mod-page-view > header > nav > .conta
 let thingspeakData = {}
 
 controlsNode.style.float = 'right'
+
+if(Config.startDate.length > 7) {
+    try {
+        startDateMs = new Date(Config.startDate)
+    } catch (error) {
+        console.error('Please check startDate field in `config.js file.`')
+        throw error
+    }
+} else {
+    throw new Error('Invalid startDate provided in `config.js`')
+}
 
 if(lastUpdatedElement)
     lastUpdatedElement.appendChild(controlsNode)
@@ -121,17 +133,16 @@ function resizeIframe() {
 
 function updateDataAccordingToConf() {
     if ( Config.dropbox || Config.jsonbin) {
-        let jsonbin = new JsonBin()
-        let myDbx = new MyDropbox()
-
         ldb.allDocs({
             include_docs: true
         }).then(res => {
             if(Config.dropbox) {
+                let myDbx = new MyDropbox()
                 let csv = createCsv(res)
                 myDbx.upload_file('gate_db.csv', csv)
             }
             if (Config.jsonbin) {
+                let jsonbin = new JsonBin()
                 let jsonData = filterJson(res)
                 jsonbin.updateBin(jsonData)
             }
@@ -224,7 +235,8 @@ function putTodaysProgress(){
         let today = new Date().toDateString()
         let todayMs = new Date()
         let daysOver = diffInDays(startDateMs, todayMs)
-        let idealProgressToday = daysOver * dailyHrstarget * 3600
+        let idealDailyHrsTarget = Config.totalHrs / diffInDays(startDateMs, new Date(Config.endDate))
+        let idealProgressToday = daysOver * idealDailyHrsTarget * 3600
         res.rows.forEach(row => {
             totalCompletedDuration += row.doc["duration"]
             if (today == new Date(row.doc["date"]).toDateString()) {
@@ -246,7 +258,8 @@ function putTodaysProgress(){
         header.appendChild(todaysDiv)
         
         let durationSpan = document.createElement('span')
-        durationSpan.innerHTML = secondsToHms(todaysDuration) + "&nbsp;/&nbsp;4:0:0"
+        let realDailyTarget = ((Config.totalHrs * 3600) - totalCompletedDuration) / diffInDays(new Date(), new Date(Config.endDate))
+        durationSpan.innerHTML = secondsToHms(todaysDuration) + "&nbsp;/&nbsp;" + secondsToHms(realDailyTarget)
         todaysDiv.appendChild(durationSpan)
 
         let laggingSpan = document.createElement('span')
