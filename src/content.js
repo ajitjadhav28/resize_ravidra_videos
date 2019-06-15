@@ -24,15 +24,13 @@ let thingspeakData = {}
 
 controlsNode.style.float = 'right'
 
-if(Config.startDate.length > 7) {
+if(Config.startDate && Config.startDate.length > 7) {
     try {
         startDateMs = new Date(Config.startDate)
     } catch (error) {
         console.error('Please check startDate field in `config.js file.`')
         throw error
     }
-} else {
-    throw new Error('Invalid startDate provided in `config.js`')
 }
 
 if(lastUpdatedElement)
@@ -54,15 +52,25 @@ window.onload = (event) => {
     }
     const iframe = document.querySelector(iframeQuery)
     if(iframe) {
+        iframe.src = iframe.src + "?autoplay=1&quality=360p"
+        // iframe.contentWindow.location.reload(true);
+        setTimeout(() => {
+            console.debug("Waiting to realod iframe.")
+            if(Config.playbackRate) {
+                player.setPlaybackRate(Config.playbackRate).then(function(playbackRate) {
+                    // playback rate was set
+                }).catch(error => console.log(error) )
+            }
+        }, 5000)
         lec_url = iframe.src
         resizeIframe()
         putControls()
+        if(startDateMs)
         putTodaysProgress()
         const player = new Player(iframe)
         player.ready().then(() => {
             document.querySelector("#region-main > div > h2").scrollIntoView()
             player.play().catch(err => console.log(err))
-            
             // Make Window full screen if not
             document.documentElement.addEventListener('click', event => {
                 if( !document.fullscreenElement ) {
@@ -257,16 +265,21 @@ function putTodaysProgress(){
         todaysDiv.style = divStyle
         header.appendChild(todaysDiv)
         
-        let durationSpan = document.createElement('span')
-        let realDailyTarget = ((Config.totalHrs * 3600) - totalCompletedDuration) / diffInDays(new Date(), new Date(Config.endDate))
-        durationSpan.innerHTML = secondsToHms(todaysDuration) + "&nbsp;/&nbsp;" + secondsToHms(realDailyTarget)
-        todaysDiv.appendChild(durationSpan)
+        if(Config.startDate){
+            let laggingSpan = document.createElement('span')
+            let durationSpan = document.createElement('span')
+            let realDailyTarget = ((Config.totalHrs * 3600) - totalCompletedDuration) / diffInDays(new Date(), new Date(Config.endDate))
+            durationSpan.innerHTML = secondsToHms(todaysDuration)
+            if(Config.totalHrs && Config.endDate){
+                durationSpan.innerHTML += "&nbsp;/&nbsp;" + secondsToHms(realDailyTarget)
 
-        let laggingSpan = document.createElement('span')
-        laggingSpan.innerHTML = "&nbsp;&nbsp;&nbsp;LAG: " + lagging
-        laggingSpan.style = "color: red; font-weight: 600; font-size: 16px;"
-        todaysDiv.appendChild(laggingSpan)
+                laggingSpan.innerHTML = "&nbsp;&nbsp;&nbsp;LAG: " + lagging
+                laggingSpan.style = "color: red; font-weight: 600; font-size: 16px;"
+            }
+            todaysDiv.appendChild(durationSpan)
+            todaysDiv.appendChild(laggingSpan)
 
+        }
         let downloadLink = document.createElement('span')
         downloadLink.style = "padding-left:20px; font-size: 16px; cursor: pointer;"
         downloadLink.innerHTML = '<img src="data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMTkuMS4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogNi4wMCBCdWlsZCAwKSAgLS0+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4PSIwcHgiIHk9IjBweCIgdmlld0JveD0iMCAwIDQ3MS4yIDQ3MS4yIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA0NzEuMiA0NzEuMjsiIHhtbDpzcGFjZT0icHJlc2VydmUiIHdpZHRoPSIxNnB4IiBoZWlnaHQ9IjE2cHgiPgo8Zz4KCTxnPgoJCTxwYXRoIGQ9Ik00NTcuNywyMzAuMTVjLTcuNSwwLTEzLjUsNi0xMy41LDEzLjV2MTIyLjhjMCwzMy40LTI3LjIsNjAuNS02MC41LDYwLjVIODcuNWMtMzMuNCwwLTYwLjUtMjcuMi02MC41LTYwLjV2LTEyNC44ICAgIGMwLTcuNS02LTEzLjUtMTMuNS0xMy41cy0xMy41LDYtMTMuNSwxMy41djEyNC44YzAsNDguMywzOS4zLDg3LjUsODcuNSw4Ny41aDI5Ni4yYzQ4LjMsMCw4Ny41LTM5LjMsODcuNS04Ny41di0xMjIuOCAgICBDNDcxLjIsMjM2LjI1LDQ2NS4yLDIzMC4xNSw0NTcuNywyMzAuMTV6IiBmaWxsPSIjMDA2REYwIi8+CgkJPHBhdGggZD0iTTIyNi4xLDM0Ni43NWMyLjYsMi42LDYuMSw0LDkuNSw0czYuOS0xLjMsOS41LTRsODUuOC04NS44YzUuMy01LjMsNS4zLTEzLjgsMC0xOS4xYy01LjMtNS4zLTEzLjgtNS4zLTE5LjEsMGwtNjIuNyw2Mi44ICAgIFYzMC43NWMwLTcuNS02LTEzLjUtMTMuNS0xMy41cy0xMy41LDYtMTMuNSwxMy41djI3My45bC02Mi44LTYyLjhjLTUuMy01LjMtMTMuOC01LjMtMTkuMSwwYy01LjMsNS4zLTUuMywxMy44LDAsMTkuMSAgICBMMjI2LjEsMzQ2Ljc1eiIgZmlsbD0iIzAwNkRGMCIvPgoJPC9nPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+CjxnPgo8L2c+Cjwvc3ZnPgo="/>'
