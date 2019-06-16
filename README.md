@@ -8,5 +8,5 @@ Chrome extension to resize video iframe to available space, autoplay next video/
 - use npm or yarn to get dependencies `yarn` or `npm update`
 - copy env.js to .env.js
 - if you want to update config then update in .config.js
-- then build : `npm build` or `yarn build`
+- then build : `yarn build` or `npm run build`
 - goto extensions in chrome and click on load unpacked then choose dist directory.
